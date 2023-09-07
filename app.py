@@ -1,22 +1,14 @@
-from flask import Flask, request, jsonify, redirect, url_for
+import streamlit as st
 from pytube import YouTube
-import random
 
-app = Flask(__name__)
+# Streamlit app header
+st.title("YouTube Video Info")
 
-
-@app.route('/', methods=['GET'])
-def homepage_redirect():
-    return redirect("https://www.youtube.com/")
-
-@app.route('/watch', methods=['GET'])
-def get_video_info_json():
-    video_id = request.args.get('v')
-    if not video_id:
-        return jsonify({"error": "Missing 'v' parameter"}), 400
-
-    video_url = f'https://www.youtube.com/watch?v={video_id}'
-    
+# Input field for the video URL
+video_url = st.text_input("Enter YouTube Video URL:")
+if not video_url:
+    st.warning("Please enter a YouTube Video URL.")
+else:
     try:
         yt = YouTube(video_url)
         video_info = {
@@ -43,9 +35,18 @@ def get_video_info_json():
             }
             video_info["streams"].append(stream_info)
 
-        return jsonify(video_info), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Display video info using Streamlit components
+        st.header(video_info["title"])
+        st.subheader(f"By: {video_info['author']}")
+        st.image(video_info["thumbnail_url"])
+        st.write(f"Length: {video_info['length']} seconds")
+        st.write(f"Views: {video_info['views']}")
+        st.write(f"Published on: {video_info['publish_date']}")
+        
+        # Display video streams in a table
+        st.subheader("Available Video Streams")
+        st.table(video_info["streams"])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+
