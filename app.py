@@ -1,42 +1,51 @@
-import streamlit as st
+from flask import Flask, request, jsonify, redirect, url_for
 from pytube import YouTube
+import random
 
-st.title("YouTube Video Information")
+app = Flask(__name__)
 
-video_url = st.text_input("Enter YouTube Video URL")
-if not video_url:
-    st.error("Please enter a YouTube Video URL")
-else:
-    # Check if the URL contains 'youtube.com/watch?v=' and extract the video ID
-    video_id = None
-    if 'youtube.com/watch?v=' in video_url:
-        video_id = video_url.split('youtube.com/watch?v=')[1]
 
-    if video_id:
-        try:
-            yt = YouTube(video_url)
-            st.subheader("Video Information")
-            st.write(f"Title: {yt.title}")
-            st.write(f"Author: {yt.author}")
-            st.write(f"Length: {yt.length} seconds")
-            st.write(f"Views: {yt.views}")
-            st.write(f"Publish Date: {yt.publish_date}")
-            st.image(yt.thumbnail_url)
+@app.route('/', methods=['GET'])
+def homepage_redirect():
+    return redirect("https://www.youtube.com/")
 
-            st.subheader("Available Streams")
-            streams = yt.streams.all()
-            for i, stream in enumerate(streams):
-                st.write(f"Stream {i+1}:")
-                st.write(f"Resolution: {stream.resolution}")
-                st.write(f"MIME Type: {stream.mime_type}")
-                st.write(f"Filesize: {stream.filesize}")
-                st.write(f"Bitrate: {stream.bitrate}")
-                st.write(f"Type: {'progressive' if stream.is_progressive else 'adaptive'}")
-                st.write(f"Download URL: {stream.url}")
-                st.write(f"Is 3D: {stream.is_3d}")
-                st.write(f"Is HDR: {stream.is_hdr}")
-                st.write(f"Is Live: {stream.is_live}")
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-    else:
-        st.error("Invalid YouTube Video URL. Please use a URL in the format 'https://www.youtube.com/watch?v=VIDEO_ID'.")
+@app.route('/watch', methods=['GET'])
+def get_video_info_json():
+    video_id = request.args.get('v')
+    if not video_id:
+        return jsonify({"error": "Missing 'v' parameter"}), 400
+
+    video_url = f'https://www.youtube.com/watch?v={video_id}'
+    
+    try:
+        yt = YouTube(video_url)
+        video_info = {
+            "title": yt.title,
+            "author": yt.author,
+            "length": yt.length,
+            "views": yt.views,
+            "publish_date": yt.publish_date,
+            "thumbnail_url": yt.thumbnail_url,
+            "streams": []
+        }
+
+        for stream in yt.streams.all():
+            stream_info = {
+                "resolution": stream.resolution,
+                "mime_type": stream.mime_type,
+                "filesize": stream.filesize,
+                "bitrate": stream.bitrate,
+                "type": "progressive" if stream.is_progressive else "adaptive",
+                "download_url": stream.url,
+                "is_3d": stream.is_3d,
+                "is_hdr": stream.is_hdr,
+                "is_live": stream.is_live
+            }
+            video_info["streams"].append(stream_info)
+
+        return jsonify(video_info), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
