@@ -3,12 +3,10 @@ from pytube import YouTube
 
 st.title("YouTube Video Information")
 
-video_id = st.text_input("Enter YouTube Video ID")
-if not video_id:
-    st.error("Please enter a YouTube Video ID")
+video_url = st.text_input("Enter YouTube Video URL")
+if not video_url:
+    st.error("Please enter a YouTube Video URL")
 else:
-    video_url = f'https://www.youtube.com/watch?v={video_id}'
-
     try:
         yt = YouTube(video_url)
         st.subheader("Video Information")
